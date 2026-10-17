@@ -18,32 +18,38 @@ const httpServer = createServer(app);
 
 const io = new Server(httpServer, socketOptions);
 
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
-
 app.use((req, res, next) => {
   const origin = req.headers.origin;
 
   if (origin && ALLOWED_ORIGINS.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
     res.setHeader("Access-Control-Allow-Credentials", "true");
+
     res.setHeader(
       "Access-Control-Allow-Methods",
-      "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+      "GET, POST, PUT, PATCH, DELETE, OPTIONS"
     );
+
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization",
+      "Content-Type, Authorization"
     );
   }
 
   if (req.method === "OPTIONS") {
+    if (!origin || !ALLOWED_ORIGINS.includes(origin)) {
+      return res.sendStatus(403);
+    }
+
     return res.sendStatus(204);
   }
 
   next();
 });
 
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/whiteboards", whiteboardRoutes);
 app.use("/api/notifications", notificationRoutes);
