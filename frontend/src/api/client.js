@@ -1,5 +1,5 @@
-const BASE_URL =
-  (import.meta.env.VITE_API_URL || "http://localhost:5000") + "/api";
+const rawApiUrl = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/+$/, "");
+const BASE_URL = rawApiUrl.endsWith("/api") ? rawApiUrl : `${rawApiUrl}/api`;
 
 export async function apiFetch(endpoint, options = {}) {
   const token = localStorage.getItem("token");
@@ -14,9 +14,18 @@ export async function apiFetch(endpoint, options = {}) {
     },
     ...options,
   });
-  const data = await res.json();
+
+  const contentType = res.headers.get("content-type") || "";
+  let data;
+  if (contentType.includes("application/json")) {
+    data = await res.json();
+  } else {
+    const text = await res.text();
+    data = { message: text };
+  }
+
   if (!res.ok) {
-    throw new Error(data.message || "Something went wrong");
+    throw new Error(data.message || `HTTP ${res.status}: ${res.statusText}`);
   }
   return data;
 }
